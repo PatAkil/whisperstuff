@@ -31,16 +31,17 @@ def handler():
     for filename, handle in request.files.items():
         print("handle", handle)
         print("filename", filename)
-        sound = AudioSegment(handle)
 
-        chunk_length_ms = 1000
+        sound = AudioSegment.from_mp3(handle)
+
+        chunk_length_ms = 10000
         chunks = make_chunks(sound, chunk_length_ms)
 
         transcriptions = []
         for i, chunk in enumerate(chunks):
             temp = NamedTemporaryFile()
-            chunk.save(temp)
-            result = model.transcribe(temp.name)
+            chunk.export(temp)
+            result = model.transcribe(temp.name, fp16=False)
             transcriptions.append(result['text'])
 
         results.append({
