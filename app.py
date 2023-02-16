@@ -2,6 +2,8 @@ from flask import Flask, abort, request
 from tempfile import NamedTemporaryFile
 import whisper
 import torch
+from pydub import AudioSegment
+from pydub.utils import make_chunks
 
 # Check if NVIDIA GPU is available
 torch.cuda.is_available()
@@ -24,24 +26,26 @@ def handler():
         # If the user didn't submit any files, return a 400 (Bad Request) error.
         abort(400)
 
-    # For each file, let's store the results in a list of dictionaries.
     results = []
 
-    # Loop over every file that the user submitted.
     for filename, handle in request.files.items():
-        # Create a temporary file.
-        # The location of the temporary file is available in `temp.name`.
-        temp = NamedTemporaryFile()
-        # Write the user's uploaded file to the temporary file.
-        # The file will get deleted when it drops out of scope.
-        handle.save(temp)
-        # Let's get the transcript of the temporary file.
-        result = model.transcribe(temp.name)
-        # Now we can store the result object for this file.
+        print("handle", handle)
+        print("filename", filename)
+        sound = AudioSegment(handle)
+
+        chunk_length_ms = 1000
+        chunks = make_chunks(sound, chunk_length_ms)
+
+        transcriptions = []
+        for i, chunk in enumerate(chunks):
+            temp = NamedTemporaryFile()
+            chunk.save(temp)
+            result = model.transcribe(temp.name)
+            transcriptions.append(result['text'])
+
         results.append({
             'filename': filename,
-            'transcript': result['text'],
+            'transcript': transcriptions,
         })
 
-    # This will be automatically converted to JSON.
     return {'results': results}
