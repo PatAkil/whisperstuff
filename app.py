@@ -4,6 +4,8 @@ import whisper
 import torch
 from pydub import AudioSegment
 from pydub.utils import make_chunks
+import openai
+import gpt3
 
 # Check if NVIDIA GPU is available
 torch.cuda.is_available()
@@ -13,6 +15,8 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 model = whisper.load_model("base", device=DEVICE)
 
 app = Flask(__name__)
+
+openai.api_key = ""
 
 
 @app.route("/")
@@ -44,9 +48,11 @@ def handler():
             result = model.transcribe(temp.name, fp16=False)
             transcriptions.append(result['text'])
 
+        summary = gpt3.askPrompt("Write a short summary of this podcast conversation: {}".format(transcriptions))
         results.append({
             'filename': filename,
             'transcript': transcriptions,
+            'summary': summary,
         })
 
     return {'results': results}
